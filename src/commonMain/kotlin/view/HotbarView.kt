@@ -113,12 +113,14 @@ class HotbarView(
     fun update(state: GameState, selectedCropId: String?) {
         refreshBgs()
 
-        // Slot 4: Penyemprot (mode Nabati / Kimia)
-        slots[3].badgeText.text = if (state.modeSemprot == Metode.KIMIA) "K" else "N"
+        // Slot 4: Penyemprot (mode Nabati / Kimia dan jumlah stok bahan)
+        val bahanStok = if (state.modeSemprot == Metode.KIMIA) state.inventory.kimia else state.inventory.nabati
+        val modeHuruf = if (state.modeSemprot == Metode.KIMIA) "K" else "N"
+        slots[3].badgeText.text = "$modeHuruf:$bahanStok"
 
         // Slot 5: Perangkap (jumlah stok)
         val perangkapStok = state.inventory.perangkap
-        slots[4].badgeText.text = if (perangkapStok > 0) perangkapStok.toString() else ""
+        slots[4].badgeText.text = perangkapStok.toString()
 
         // Slot 6: Biji (jumlah stok biji terpilih)
         if (selectedCropId != null) {

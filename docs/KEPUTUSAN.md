@@ -78,3 +78,43 @@ Dokumen ini mencatat keputusan-keputusan teknis dan resolusi ambiguitas yang dia
 
 5. **Efek Suara (`Sfx.kt`):**
    - Efek suara `sfx_cangkul.wav`, `sfx_siram.wav`, dan `sfx_gagal.wav` dimuat via `readSound()` dan diputar secara non-blocking via `playNoCancel()`.
+
+---
+
+## Milestone M3 (Toko, Panen, Shipping Bin, & Ekonomi) - 19 November 2026
+
+1. **Perhitungan Kualitas dan Harga Jual (`core/Economy.kt`):**
+   - Penentuan kualitas hasil panen mengikuti aturan SPEC bagian 9:
+     - `kesehatan >= 80 -> BAIK` (pengali harga 1.0)
+     - `kesehatan >= 40 -> BIASA` (pengali harga 0.6)
+     - `kesehatan < 40 -> RUSAK` (pengali harga 0.3)
+   - Jika tanaman pernah terpapar pestisida kimia (`pernahKimia == true`), kualitas maksimal dibatasi menjadi `BIASA` (tidak bisa mendapat `BAIK`).
+   - Harga jual satuan dihitung dengan pembulatan terdekat: `round(hargaDasar * pengali).toInt()`.
+
+2. **Siklus Pergantian Hari & Shipping Bin (`DaySimulator.tickHari`):**
+   - Sesuai urutan SPEC bagian 8, Langkah 1 (Jual isi bin) dijalankan pada permulaan pergantian hari sebelum Langkah 3 (pertumbuhan) dan 4 (pengeringan tanah).
+   - Total nilai penjualan ditambahkan ke `GameState.uang`, daftar bin dikosongkan, dan nilai pendapatan disimpan ke `GameState.pendapatanKemarin` untuk display HUD/laporan harian.
+
+3. **Interaksi Panen dan Shipping Bin (`core/Interaction.kt`):**
+   - Menekan `E` pada tanaman matang hidup (`hariTumbuh >= hariTumbuhCrop`) memanen tanaman dengan kualitas yang sesuai, menambahkannya ke `inventory.hasil`, mengembalikan kondisi tanah petak menjadi `DIOLAH`, dan mengosongkan petak.
+   - Menekan `E` pada tanaman mati (`kesehatan <= 0`) membersihkan petak tanpa menghasilkan panenan.
+   - Menekan `E` pada petak tanaman belum matang memunculkan toast penolakan `belumMatang`.
+   - Menekan `E` pada Shipping Bin memindahkan seluruh isi `inventory.hasil` ke dalam `bin` dan mengosongkan inventory hasil panen pemain.
+
+4. **Toko / ShopPanel 9-Slice (`view/ShopPanel.kt`):**
+   - Dialog toko berukuran 320×210 piksel menggunakan `panel.png` via KorGE `NinePatch` dengan border 16 piksel di setiap sisi (`left=16, top=16, right=16, bottom=16`).
+   - Katalog barang toko dimuat langsung dari `items.json.urutanDiToko` (6 barang: biji padi, biji jagung, biji cabai, pestisida nabati, perangkap, pestisida kimia).
+   - Menampilkan nama, ikon (dari `ikon.png`), harga, dan jumlah yang sedang dimiliki pemain, serta saldo uang pemain.
+   - Navigasi menggunakan tombol W/S atau Panah Atas/Bawah.
+   - Tombol Enter membeli 1 unit barang jika uang mencukupi. Jika uang kurang, memunculkan toast `uangKurang`.
+   - Tombol Escape menutup panel toko.
+   - Game loop dan waktu otomatis dijeda (*paused*) selama ShopPanel terbuka.
+
+5. **Display HUD & Hotbar:**
+   - HUD menampilkan status uang terkini pemain.
+   - Hotbar menampilkan stok biji di slot 6, stok perangkap di slot 5, dan indikator mode bahan di slot 4 (`N:jumlah` atau `K:jumlah`).
+
+6. **Efek Suara Tambahan (`Sfx.kt`):**
+   - Menambahkan `sfx_beli.wav` saat transaksi toko berhasil.
+   - Menambahkan `sfx_panen.wav` saat pemain memanen hasil tanaman.
+   - Menambahkan `sfx_jual.wav` saat hasil panen dimasukkan ke shipping bin.

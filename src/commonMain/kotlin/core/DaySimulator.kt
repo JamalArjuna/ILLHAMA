@@ -69,13 +69,21 @@ object DaySimulator {
 
     /**
      * Menjalankan pergantian hari (tickHari).
-     * Urutan sesuai SPEC bagian 8 (Langkah 3, 4, 8, 9):
+     * Urutan sesuai SPEC bagian 8 (Langkah 1, 3, 4, 8, 9):
+     * - Langkah 1: Jual isi bin, tambah ke uang, kosongkan bin, simpan pendapatanKemarin
      * - Langkah 3: Pertumbuhan: setiap tanaman hidup dengan petak disiramHariIni == true menambah hariTumbuh sebanyak 1
      * - Langkah 4: Keringkan tanah: semua petak disiramHariIni = false
      * - Langkah 8: hari += 1, menitHari = jamMulai * 60
      * - Langkah 9: Mengembalikan true jika musim telah berakhir (hari > jumlahHariMusim)
      */
-    fun tickHari(state: GameState, config: GameConfig): Boolean {
+    fun tickHari(state: GameState, config: GameConfig, catalog: Catalog? = null): Boolean {
+        // Langkah 1: Jual isi bin
+        if (catalog != null) {
+            val pendapatan = Economy.jualIsiBin(state.bin, catalog, config)
+            state.uang += pendapatan
+            state.pendapatanKemarin = pendapatan
+        }
+
         // Langkah 3: Pertumbuhan
         for (petak in state.petak) {
             val t = petak.tanaman

@@ -55,7 +55,8 @@ data class GameState(
     val petak: List<Petak> = List(48) { i -> Petak(i % 8, i / 8) },   // 48 petak
     val journalTerbuka: MutableSet<String> = mutableSetOf(),    // id hama yang pernah diperiksa
     var tutorialIndex: Int = 0,
-    var modeSemprot: Metode = Metode.NABATI    // NABATI atau KIMIA
+    var modeSemprot: Metode = Metode.NABATI,   // NABATI atau KIMIA
+    var pendapatanKemarin: Int = 0
 ) {
     fun petakAt(x: Int, y: Int): Petak? {
         if (x !in 0..7 || y !in 0..5) return null
