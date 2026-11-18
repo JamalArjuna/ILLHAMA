@@ -23,9 +23,18 @@ data class ConstantsWaktu(
 )
 
 @Serializable
+data class ConstantsHitbox(
+    val lebar: Int,
+    val tinggi: Int,
+    val offsetX: Int,
+    val offsetY: Int
+)
+
+@Serializable
 data class ConstantsPemain(
     val uangAwal: Int,
-    val kecepatanPxPerDetik: Int
+    val kecepatanPxPerDetik: Int,
+    val hitbox: ConstantsHitbox = ConstantsHitbox(10, 8, 3, 8)
 )
 
 @Serializable
@@ -119,6 +128,11 @@ class GameConfig private constructor(val data: ConstantsRoot) {
     val jumlahHariMusim get() = data.waktu.jumlahHariMusim
 
     val uangAwal get() = data.pemain.uangAwal
+    val kecepatanPxPerDetik get() = data.pemain.kecepatanPxPerDetik
+    val hitboxLebar get() = data.pemain.hitbox.lebar
+    val hitboxTinggi get() = data.pemain.hitbox.tinggi
+    val hitboxOffsetX get() = data.pemain.hitbox.offsetX
+    val hitboxOffsetY get() = data.pemain.hitbox.offsetY
 
     val lahanKolom get() = data.lahan.kolom
     val lahanBaris get() = data.lahan.baris

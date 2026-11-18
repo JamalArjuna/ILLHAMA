@@ -51,7 +51,11 @@ data class TextsData(
     val judulGame: String,
     val toast: Map<String, String> = emptyMap(),
     val kualitas: Map<String, String> = emptyMap(),
-    val menu: Map<String, String> = emptyMap()
+    val menu: Map<String, String> = emptyMap(),
+    val hud: Map<String, String> = emptyMap(),
+    val tidur: Map<String, String> = emptyMap(),
+    val toko: Map<String, String> = emptyMap(),
+    val bin: Map<String, String> = emptyMap()
 )
 
 /**
