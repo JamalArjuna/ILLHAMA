@@ -55,14 +55,21 @@ class ShopPanel(
         y = (272.0 - panelHeight) / 2.0
         visible = false
 
-        // Background 9-patch panel.png (sudut 16 px)
+        // Background 9-patch panel.png
+        // ninePatch(tex, size, left, top, right, bottom) menggunakan asNinePatchSimpleRatio:
+        // left/top = rasio dari sisi kiri/atas dimana border berakhir
+        // right/bottom = rasio dari sisi kiri/atas dimana border kanan/bawah dimulai
+        // panel.png berukuran 48x48 dengan border 16px → rasio = 16/48 dan (48-16)/48
+        val bw = panelBitmap.width.toFloat()   // 48f
+        val bh = panelBitmap.height.toFloat()  // 48f
+        val borderPx = 16f
         ninePatch(
             tex = panelBitmap.slice(),
             size = Size(panelWidth.toFloat(), panelHeight.toFloat()),
-            left = 16f,
-            top = 16f,
-            right = 16f,
-            bottom = 16f
+            left   = borderPx / bw,           // 0.333f
+            top    = borderPx / bh,           // 0.333f
+            right  = (bw - borderPx) / bw,   // 0.667f
+            bottom = (bh - borderPx) / bh    // 0.667f
         ) {
             smoothing = false
         }
