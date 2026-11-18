@@ -1,0 +1,103 @@
+package core
+
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+
+// DTO crops.json
+@Serializable
+data class CropData(
+    val id: String,
+    val nama: String,
+    val hargaBiji: Int,
+    val hariTumbuh: Int,
+    val hargaJual: Int,
+    val hama: List<String>,
+    val spriteBaris: Int,
+    val ikonPanen: Int
+)
+
+// DTO pests.json
+@Serializable
+data class PestData(
+    val id: String,
+    val nama: String,
+    val namaIlmiah: String,
+    val tanaman: String,
+    val metodeBenar: String,
+    val spriteIndex: Int,
+    val gejala: String,
+    val ciri: String,
+    val caraKendali: String,
+    val tipGame: String
+)
+
+// DTO items.json
+@Serializable
+data class AlatData(val id: String, val nama: String, val slot: Int, val ikon: Int)
+
+@Serializable
+data class BarangData(val id: String, val nama: String, val harga: Int, val ikon: Int)
+
+@Serializable
+data class ItemsData(
+    val alat: List<AlatData>,
+    val barang: List<BarangData>,
+    val urutanDiToko: List<String>
+)
+
+// DTO texts_id.json — kita pakai JsonElement agar tidak perlu semua field di sini
+@Serializable
+data class TextsData(
+    val judulGame: String,
+    val toast: Map<String, String> = emptyMap(),
+    val kualitas: Map<String, String> = emptyMap(),
+    val menu: Map<String, String> = emptyMap()
+)
+
+/**
+ * Catalog memuat semua data tanaman, hama, item, dan teks.
+ * Tidak bergantung pada KorGE; pemuatan dilakukan lewat string JSON yang dipasok dari luar.
+ */
+class Catalog private constructor(
+    val crops: List<CropData>,
+    val pests: List<PestData>,
+    val items: ItemsData,
+    val texts: TextsData
+) {
+    companion object {
+        private val json = Json { ignoreUnknownKeys = true }
+
+        fun dari(
+            cropsJson: String,
+            pestsJson: String,
+            itemsJson: String,
+            textsJson: String
+        ): Catalog {
+            val crops = json.decodeFromString<List<CropData>>(cropsJson)
+            val pests = json.decodeFromString<List<PestData>>(pestsJson)
+            val items = json.decodeFromString<ItemsData>(itemsJson)
+            val texts = json.decodeFromString<TextsData>(textsJson)
+            return Catalog(crops, pests, items, texts)
+        }
+    }
+
+    // Indeks cepat
+    val cropById: Map<String, CropData> = crops.associateBy { it.id }
+    val pestById: Map<String, PestData> = pests.associateBy { it.id }
+
+    fun cropDariId(id: String): CropData = cropById[id] ?: error("Crop tidak ditemukan: $id")
+    fun pestDariId(id: String): PestData = pestById[id] ?: error("Pest tidak ditemukan: $id")
+
+    /** Validasi: setiap referensi hama di tiap tanaman harus ada di daftar hama */
+    fun validasiRujukan(): List<String> {
+        val errors = mutableListOf<String>()
+        for (crop in crops) {
+            for (hamaId in crop.hama) {
+                if (!pestById.containsKey(hamaId)) {
+                    errors += "Crop '${crop.id}' merujuk hama '${hamaId}' yang tidak ada di pests.json"
+                }
+            }
+        }
+        return errors
+    }
+}

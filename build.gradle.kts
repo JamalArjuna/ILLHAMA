@@ -32,3 +32,14 @@ dependencies {
     //add("commonMainApi", project(":korge-dragonbones"))
 }
 
+kotlin {
+    sourceSets {
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+        }
+        jvmTest.dependencies {
+            implementation(kotlin("test-junit"))
+        }
+    }
+}
+

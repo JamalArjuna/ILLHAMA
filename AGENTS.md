@@ -12,6 +12,8 @@ Proyek: game edukasi farming dan pengenalan hama Indonesia, 2D top-down, **Kotli
 - KorGE: `6.0.0`  (plugin id: `com.soywiz.korge`)
 - Kotlin: `2.0.20`   Gradle: `8.8`   JDK: `21.0.4x`
 - Parser JSON yang dipakai: `Kotlinx Serialization JSON`
+- Namespace library KorGE: `korlibs.*`
+- ID aplikasi: `com.sample.demo`
 Jangan mengubah versi apa pun tanpa izin tertulis dari pemilik proyek. Jika build gagal karena versi, **berhenti dan laporkan**.
 
 ## Aturan wajib
