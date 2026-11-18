@@ -1,0 +1,32 @@
+[
+  {
+    "id": "padi",
+    "nama": "Padi",
+    "hargaBiji": 20,
+    "hariTumbuh": 5,
+    "hargaJual": 60,
+    "hama": ["wereng_cokelat", "tikus_sawah"],
+    "spriteBaris": 0,
+    "ikonPanen": 10
+  },
+  {
+    "id": "jagung",
+    "nama": "Jagung",
+    "hargaBiji": 30,
+    "hariTumbuh": 6,
+    "hargaJual": 90,
+    "hama": ["ulat_grayak_jagung", "belalang"],
+    "spriteBaris": 1,
+    "ikonPanen": 11
+  },
+  {
+    "id": "cabai",
+    "nama": "Cabai",
+    "hargaBiji": 50,
+    "hariTumbuh": 7,
+    "hargaJual": 160,
+    "hama": ["kutu_daun", "lalat_buah"],
+    "spriteBaris": 2,
+    "ikonPanen": 12
+  }
+]

@@ -1,0 +1,116 @@
+{
+  "judulGame": "Tani Siaga",
+  "judulGameCatatan": "Judul sementara, ganti sesuka hati.",
+  "menu": {
+    "mulaiBaru": "Mulai Baru",
+    "lanjutkan": "Lanjutkan",
+    "keluar": "Keluar",
+    "kredit": "Kredit"
+  },
+  "hud": {
+    "hari": "Hari {hari}/{total}",
+    "uang": "Rp {uang}",
+    "modeNabati": "Nabati",
+    "modeKimia": "Kimia"
+  },
+  "toast": {
+    "uangKurang": "Uangmu tidak cukup.",
+    "bijiHabis": "Biji sudah habis. Beli lagi di toko.",
+    "bijiTerbeli": "Membeli {nama}.",
+    "tanahBelumDiolah": "Cangkul tanahnya dulu.",
+    "sudahDiolah": "Petak ini sudah diolah.",
+    "petakTerisi": "Petak ini sudah ditanami.",
+    "perluDiolah": "Olah petak dengan cangkul sebelum menanam.",
+    "tanamanSehat": "Tanaman ini tampak sehat (kesehatan {kesehatan}).",
+    "metodeSalah": "Metode kurang tepat. Periksa gejalanya lagi.",
+    "bahanHabis": "Bahan habis. Beli lagi di toko.",
+    "tidakAdaHama": "Tidak ada hama di petak ini.",
+    "nabatiDisemprot": "Disemprot. Hama akan hilang besok pagi.",
+    "perangkapDipasang": "Perangkap dipasang. Hama akan tertangkap besok pagi.",
+    "manualBerhasil": "Hama berhasil diambil.",
+    "kimiaDipakai": "Hama hilang, tetapi hasil panen petak ini hanya bisa berkualitas Biasa.",
+    "belumMatang": "Tanaman ini belum matang.",
+    "panenBerhasil": "Panen {nama} ({kualitas})!",
+    "masukBin": "{jumlah} hasil panen masuk ke shipping bin.",
+    "binKosong": "Tidak ada hasil panen untuk dimasukkan.",
+    "tanamanMati": "Tanaman ini mati. Tekan E untuk membersihkannya.",
+    "petakDibersihkan": "Petak dibersihkan.",
+    "journalBaru": "Journal baru terbuka: {nama}.",
+    "tersimpan": "Progres tersimpan."
+  },
+  "kualitas": {
+    "BAIK": "Baik",
+    "BIASA": "Biasa",
+    "RUSAK": "Rusak"
+  },
+  "toko": {
+    "judul": "Toko Tani",
+    "petunjuk": "Naik/Turun: pilih   Enter: beli   Esc: tutup",
+    "uang": "Uangmu: Rp {uang}",
+    "stok": "Punya: {jumlah}"
+  },
+  "bin": {
+    "petunjuk": "Tekan E untuk memasukkan semua hasil panen ke shipping bin. Hasil dijual saat hari berganti."
+  },
+  "tidur": {
+    "konfirmasi": "Tidur dan ganti hari?",
+    "ya": "Ya",
+    "tidak": "Belum"
+  },
+  "periksa": {
+    "judul": "Hasil pemeriksaan",
+    "gejala": "Gejala: {gejala}",
+    "jenis": "Hama: {nama} ({ilmiah})",
+    "petunjuk": "Pilih cara pengendalian yang tepat. Detailnya ada di Journal (tekan J)."
+  },
+  "journal": {
+    "judul": "Pest Journal",
+    "terkunci": "???",
+    "terkunciDeskripsi": "Periksa hama ini dengan Kaca Pembesar untuk membuka catatannya.",
+    "label": {
+      "tanaman": "Menyerang",
+      "ciri": "Ciri",
+      "gejala": "Gejala",
+      "caraKendali": "Cara kendali"
+    },
+    "petunjuk": "Kiri/Kanan atau Atas/Bawah: pilih   J atau Esc: tutup",
+    "terbuka": "{terbuka}/{total} terbuka"
+  },
+  "ringkasan": {
+    "judul": "Ringkasan Hari {hari}",
+    "pendapatan": "Pendapatan kemarin: Rp {jumlah}",
+    "hamaDitangani": "Hama yang hilang: {jumlah}",
+    "tanamanRusak": "Tanaman mati: {jumlah}",
+    "lanjut": "Tekan Enter untuk lanjut"
+  },
+  "akhir": {
+    "judul": "Musim Selesai",
+    "uang": "Uang akhir: Rp {uang}",
+    "journal": "Journal terbuka: {terbuka}/{total}",
+    "rating": "Rating: {bintang} bintang",
+    "pesan": {
+      "0": "Belum berhasil kali ini. Coba lagi dan perhatikan gejala hamanya.",
+      "1": "Lumayan! Kamu sudah bisa mengelola ladang.",
+      "2": "Bagus! Ladangmu terawat dan hama terkendali.",
+      "3": "Luar biasa! Kamu mengenali semua hama dan memanen banyak."
+    },
+    "ulang": "Enter: main lagi   Esc: menu utama"
+  },
+  "tutorial": [
+    { "id": "gerak", "teks": "Gerak dengan W A S D atau tombol panah.", "selesaiKetika": "pemain_bergerak" },
+    { "id": "ke_toko", "teks": "Pergi ke toko di kanan atas. Berdiri di depan pintunya dan tekan E.", "selesaiKetika": "toko_dibuka" },
+    { "id": "beli_biji", "teks": "Beli beberapa biji, lalu tutup toko dengan Esc.", "selesaiKetika": "biji_dibeli" },
+    { "id": "cangkul", "teks": "Tekan 1 untuk memilih Cangkul, lalu tekan Spasi di petak tanah.", "selesaiKetika": "petak_diolah" },
+    { "id": "tanam", "teks": "Tekan 6 untuk memilih biji, lalu tekan Spasi di petak yang sudah diolah.", "selesaiKetika": "tanaman_ditanam" },
+    { "id": "siram", "teks": "Tekan 2 untuk memilih Penyiram, lalu siram tanamanmu. Tanaman hanya tumbuh pada hari ia disiram.", "selesaiKetika": "tanaman_disiram" },
+    { "id": "tidur", "teks": "Berdiri di depan pintu rumah dan tekan E untuk tidur dan ganti hari.", "selesaiKetika": "hari_berganti" }
+  ],
+  "petunjukKejadian": {
+    "hama_pertama": "Ada tanda seru di tanamanmu! Itu hama. Pilih Kaca Pembesar (3) dan periksa tanamannya dulu sebelum bertindak.",
+    "matang_pertama": "Tanamanmu sudah matang. Tekan E di dekatnya untuk memanen, lalu masukkan hasilnya ke shipping bin."
+  },
+  "kredit": {
+    "judul": "Kredit",
+    "isi": "Isi dari docs/CREDITS.md saat build akhir."
+  }
+}

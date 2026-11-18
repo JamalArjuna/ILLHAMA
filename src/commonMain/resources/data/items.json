@@ -1,0 +1,24 @@
+{
+  "alat": [
+    { "id": "cangkul", "nama": "Cangkul", "slot": 1, "ikon": 0 },
+    { "id": "penyiram", "nama": "Penyiram", "slot": 2, "ikon": 1 },
+    { "id": "kaca_pembesar", "nama": "Kaca Pembesar", "slot": 3, "ikon": 2 },
+    { "id": "penyemprot", "nama": "Penyemprot", "slot": 4, "ikon": 3 },
+    { "id": "perangkap", "nama": "Perangkap", "slot": 5, "ikon": 4 },
+    { "id": "biji", "nama": "Biji", "slot": 6, "ikon": 5 }
+  ],
+  "barang": [
+    { "id": "nabati", "nama": "Pestisida Nabati", "harga": 15, "ikon": 13 },
+    { "id": "kimia", "nama": "Pestisida Kimia", "harga": 60, "ikon": 14 },
+    { "id": "perangkap", "nama": "Perangkap", "harga": 40, "ikon": 4 }
+  ],
+  "urutanDiToko": [
+    "biji:padi",
+    "biji:jagung",
+    "biji:cabai",
+    "barang:nabati",
+    "barang:perangkap",
+    "barang:kimia"
+  ],
+  "catatan": "Harga biji diambil dari crops.json (hargaBiji). Perangkap sekali pakai: habis saat dipasang pada petak berhama."
+}

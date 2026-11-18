@@ -1,0 +1,60 @@
+{
+  "tampilan": {
+    "virtualWidth": 480,
+    "virtualHeight": 272,
+    "tileSize": 16,
+    "skalaJendela": 3,
+    "mapKolom": 30,
+    "mapBaris": 17
+  },
+  "waktu": {
+    "detikNyataPerHari": 120,
+    "jamMulai": 6,
+    "jamTidurOtomatis": 22,
+    "jumlahHariMusim": 14
+  },
+  "pemain": {
+    "uangAwal": 500,
+    "kecepatanPxPerDetik": 80,
+    "hitbox": { "lebar": 10, "tinggi": 8, "offsetX": 3, "offsetY": 8 }
+  },
+  "lahan": {
+    "kolom": 8,
+    "baris": 6,
+    "originTile": [3, 7]
+  },
+  "tanaman": {
+    "jumlahTahapGambar": 4,
+    "kesehatanAwal": 100
+  },
+  "hama": {
+    "peluangMunculHarian": 0.2,
+    "tahapMinimalMuncul": 1,
+    "peluangMenyebar": 0.3,
+    "kerusakanKesehatanPerHari": 25
+  },
+  "kualitas": {
+    "batasBaik": 75,
+    "batasBiasa": 40,
+    "pengaliBaik": 1.0,
+    "pengaliBiasa": 0.6,
+    "pengaliRusak": 0.3,
+    "kimiaMaksimalKualitas": "BIASA"
+  },
+  "rating": {
+    "bintang1": 1500,
+    "bintang2": 3000,
+    "bintang3": 4500,
+    "journalPenuhUntukBintang3": 6
+  },
+  "ui": {
+    "durasiToastDetik": 2.5
+  },
+  "debug": {
+    "aktif": true,
+    "tombolTambahUang": "F1",
+    "tombolLompatHari": "F2",
+    "tombolPaksaHama": "F3",
+    "tombolMatangkanSemua": "F4"
+  }
+}

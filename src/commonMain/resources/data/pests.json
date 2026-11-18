@@ -1,0 +1,74 @@
+[
+  {
+    "id": "wereng_cokelat",
+    "nama": "Wereng Cokelat",
+    "namaIlmiah": "Nilaparvata lugens",
+    "tanaman": "padi",
+    "metodeBenar": "nabati",
+    "spriteIndex": 0,
+    "gejala": "Daun menguning dan mengering mulai dari pangkal. Rumpun padi tampak seperti terbakar.",
+    "ciri": "Serangga kecil berwarna cokelat yang hidup bergerombol di pangkal batang padi, dekat permukaan air. Ia menghisap cairan tanaman.",
+    "caraKendali": "Tanam varietas tahan dan tanam serempak, jangan memupuk nitrogen berlebihan, jaga musuh alami seperti laba-laba, dan gunakan pestisida nabati atau yang selektif bila serangan meningkat. Wereng juga dapat menularkan penyakit virus pada padi.",
+    "tipGame": "Di game: semprot dengan Pestisida Nabati."
+  },
+  {
+    "id": "tikus_sawah",
+    "nama": "Tikus Sawah",
+    "namaIlmiah": "Rattus argentiventer",
+    "tanaman": "padi",
+    "metodeBenar": "perangkap",
+    "spriteIndex": 1,
+    "gejala": "Batang padi terpotong rapi dan rebah, ada bekas gigitan, serta lubang sarang di pematang.",
+    "ciri": "Hewan pengerat berwarna cokelat keabuan yang aktif di malam hari dan bersarang di pematang atau tanggul sawah. Ia termasuk hama yang paling merusak pada padi.",
+    "caraKendali": "Bersihkan semak di pematang, lakukan gropyokan bersama, pasang perangkap atau Trap Barrier System (TBS), dan lestarikan burung hantu pemangsa tikus.",
+    "tipGame": "Di game: pasang Perangkap di petak."
+  },
+  {
+    "id": "ulat_grayak_jagung",
+    "nama": "Ulat Grayak Jagung",
+    "namaIlmiah": "Spodoptera frugiperda",
+    "tanaman": "jagung",
+    "metodeBenar": "manual",
+    "spriteIndex": 2,
+    "gejala": "Daun berlubang tidak beraturan dan ada serbuk seperti kotoran di pucuk tanaman.",
+    "ciri": "Ulat berwarna cokelat kehijauan yang bersembunyi di pucuk atau gulungan daun muda. Hama ini termasuk jenis pendatang yang menyebar di Indonesia sejak sekitar tahun 2019.",
+    "caraKendali": "Periksa tanaman secara rutin, ambil ulat dan kelompok telurnya dengan tangan saat serangan masih sedikit, tanam serempak, jaga musuh alami, dan gunakan biopestisida bila perlu.",
+    "tipGame": "Di game: ambil dengan tangan (tekan E di dekat tanaman)."
+  },
+  {
+    "id": "belalang",
+    "nama": "Belalang",
+    "namaIlmiah": "Locusta migratoria",
+    "tanaman": "jagung",
+    "metodeBenar": "manual",
+    "spriteIndex": 3,
+    "gejala": "Tepi daun habis dimakan sehingga daun tampak compang-camping.",
+    "ciri": "Serangga pelompat berwarna hijau kecokelatan dengan kaki belakang yang panjang. Ia memakan daun dan dapat berkumpul dalam jumlah besar.",
+    "caraKendali": "Tangkap dengan jaring atau tangan saat jumlahnya masih sedikit, olah tanah untuk mengganggu telurnya, dan jaga musuh alami seperti burung dan laba-laba.",
+    "tipGame": "Di game: ambil dengan tangan (tekan E di dekat tanaman)."
+  },
+  {
+    "id": "kutu_daun",
+    "nama": "Kutu Daun",
+    "namaIlmiah": "Aphis gossypii",
+    "tanaman": "cabai",
+    "metodeBenar": "nabati",
+    "spriteIndex": 4,
+    "gejala": "Daun keriting, ada lapisan lengket pada daun, dan banyak semut di sekitar tanaman.",
+    "ciri": "Serangga sangat kecil berwarna hijau atau kehitaman yang bergerombol di pucuk dan bagian bawah daun. Ia menghisap cairan tanaman dan dapat menularkan virus.",
+    "caraKendali": "Semprot dengan pestisida nabati (misalnya larutan sabun atau ekstrak bawang putih), jaga musuh alami seperti kepik, dan buang pucuk yang terserang berat.",
+    "tipGame": "Di game: semprot dengan Pestisida Nabati."
+  },
+  {
+    "id": "lalat_buah",
+    "nama": "Lalat Buah",
+    "namaIlmiah": "Bactrocera dorsalis",
+    "tanaman": "cabai",
+    "metodeBenar": "perangkap",
+    "spriteIndex": 5,
+    "gejala": "Buah membusuk, di dalamnya ada belatung, dan buah mudah rontok.",
+    "ciri": "Lalat kecil bersayap bening yang bertelur di dalam buah. Telurnya menetas menjadi belatung yang merusak daging buah dari dalam.",
+    "caraKendali": "Kumpulkan dan musnahkan buah yang jatuh, pasang perangkap dengan atraktan metil eugenol, dan bungkus buah bila memungkinkan.",
+    "tipGame": "Di game: pasang Perangkap di petak."
+  }
+]
