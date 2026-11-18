@@ -48,3 +48,33 @@ Dokumen ini mencatat keputusan-keputusan teknis dan resolusi ambiguitas yang dia
    - Akumulasi pecahan menit dicatat dalam buffer desimal untuk memajukan `GameState.menitHari` secara presisi.
    - Pukul 22:00 memicu pergantian hari otomatis (`tickHari`): hari bertambah 1, jam kembali ke 06:00, dan musim berakhir ke `EndScene` jika hari > 14.
    - Tombol debug F2 memicu pergantian hari langsung untuk keperluan pengujian.
+
+---
+
+## Milestone M2 (Tanam, Siram, & Pertumbuhan Tanaman) - 19 November 2026
+
+1. **Model Data dan Rumus Pertumbuhan (`core/Models.kt`):**
+   - Rumus tahap gambar tanaman diimplementasikan murni di `core/Models.kt` (`hitungTahapGambar`):
+     - `mati -> 4` (layu)
+     - `hariTumbuh >= hariTumbuhCrop -> 3` (matang)
+     - `selain itu -> min(2, (hariTumbuh * 3) / hariTumbuhCrop)`
+   - Menambahkan helper `GameState.petakAt(x, y)` untuk akses aman ke 48 petak lahan.
+
+2. **Aturan Interaksi Alat x Petak (`core/Interaction.kt`):**
+   - Logika interaksi dipisahkan ke `core/Interaction.kt` agar dapat diuji unit tanpa engine rendering.
+   - Cangkul mengubah tanah `BELUM_DIOLAH` menjadi `DIOLAH`.
+   - Penyiram mengubah petak `DIOLAH` menjadi basah (`disiramHariIni = true`).
+   - Biji (slot 6) memeriksa kepemilikan stok biji dan kondisi petak (harus `DIOLAH` dan kosong), lalu menanam `Tanaman` (kesehatan 100, `hariTumbuh = 0`).
+
+3. **Siklus Pergantian Hari (`DaySimulator.tickHari`):**
+   - Langkah 3: Menambah `hariTumbuh` sebanyak 1 hanya untuk tanaman hidup yang petaknya `disiramHariIni == true`.
+   - Langkah 4: Mengeringkan tanah (`disiramHariIni = false`) untuk seluruh 48 petak.
+   - Langkah 8: `hari += 1`, `menitHari = jamMulai * 60`.
+
+4. **Tampilan Lahan dan Hotbar (`PlotsView.kt`, `HotbarView.kt`):**
+   - `PlotsView` merender 48 petak lahan (tile 3 belum diolah, tile 4 diolah kering, tile 5 basah) dan sprite tanaman dari `crops.png` (80x48 px, 5 kolom x 3 baris) dengan nearest-neighbor (`smoothing = false`).
+   - `HotbarView` merender 6 slot di tengah bawah (`x = 180, y = 248`) dengan ikon dari `ikon.png` dan bingkai `slot.png` / `slot_terpilih.png`. Navigasi menggunakan tombol angka 1-6 dan mouse scroll.
+   - Tombol Tab bergilir di antara jenis biji yang dimiliki (`padi`, `jagung`, `cabai`).
+
+5. **Efek Suara (`Sfx.kt`):**
+   - Efek suara `sfx_cangkul.wav`, `sfx_siram.wav`, dan `sfx_gagal.wav` dimuat via `readSound()` dan diputar secara non-blocking via `playNoCancel()`.

@@ -69,14 +69,31 @@ object DaySimulator {
 
     /**
      * Menjalankan pergantian hari (tickHari).
-     * Pada Milestone M1:
-     * - Hari bertambah 1
-     * - Jam direset ke jamMulai (06:00)
-     * Mengembalikan true jika musim telah berakhir (hari > jumlahHariMusim).
+     * Urutan sesuai SPEC bagian 8 (Langkah 3, 4, 8, 9):
+     * - Langkah 3: Pertumbuhan: setiap tanaman hidup dengan petak disiramHariIni == true menambah hariTumbuh sebanyak 1
+     * - Langkah 4: Keringkan tanah: semua petak disiramHariIni = false
+     * - Langkah 8: hari += 1, menitHari = jamMulai * 60
+     * - Langkah 9: Mengembalikan true jika musim telah berakhir (hari > jumlahHariMusim)
      */
     fun tickHari(state: GameState, config: GameConfig): Boolean {
+        // Langkah 3: Pertumbuhan
+        for (petak in state.petak) {
+            val t = petak.tanaman
+            if (t != null && !t.mati && petak.disiramHariIni) {
+                t.hariTumbuh += 1
+            }
+        }
+
+        // Langkah 4: Keringkan tanah
+        for (petak in state.petak) {
+            petak.disiramHariIni = false
+        }
+
+        // Langkah 8: Hari naik, jam reset
         state.hari += 1
         state.menitHari = config.jamMulai * 60
+
+        // Langkah 9: Akhir musim
         return state.hari > config.jumlahHariMusim
     }
 }
