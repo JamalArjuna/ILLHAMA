@@ -6,19 +6,11 @@ package core
  */
 object DaySimulator {
 
-    /**
-     * Menghitung rasio menit game per detik nyata.
-     * Berdasarkan SPEC: 120 detik nyata = 06:00 sampai 22:00 (16 jam = 960 menit game).
-     * 960 / 120 = 8.0 menit game per detik nyata.
-     */
     fun hitungMenitGamePerDetik(detikNyataPerHari: Int, jamMulai: Int, jamTidurOtomatis: Int): Double {
         val totalMenitGame = (jamTidurOtomatis - jamMulai) * 60.0
         return totalMenitGame / detikNyataPerHari.toDouble()
     }
 
-    /**
-     * Konversi detik nyata ke total menit game untuk suatu durasi.
-     */
     fun detikNyataKeMenitGame(
         detikNyata: Double,
         detikNyataPerHari: Int,
@@ -29,10 +21,6 @@ object DaySimulator {
         return detikNyata * rasio
     }
 
-    /**
-     * Format menit sejak 00:00 menjadi format teks "HH:MM".
-     * Contoh: 360 -> "06:00", 750 -> "12:30", 1320 -> "22:00".
-     */
     fun formatWaktu(menitHari: Int): String {
         val jam = (menitHari / 60) % 24
         val menit = menitHari % 60
@@ -41,10 +29,6 @@ object DaySimulator {
         return "$jamStr:$menitStr"
     }
 
-    /**
-     * Memajukan waktu game berdasarkan delta detik nyata (dt).
-     * Mengembalikan true jika jam telah mencapai atau melewati jamTidurOtomatis (22:00).
-     */
     fun tickWaktu(
         state: GameState,
         config: GameConfig,
@@ -69,14 +53,15 @@ object DaySimulator {
 
     /**
      * Menjalankan pergantian hari (tickHari).
-     * Urutan sesuai SPEC bagian 8 (Langkah 1, 3, 4, 8, 9):
-     * - Langkah 1: Jual isi bin, tambah ke uang, kosongkan bin, simpan pendapatanKemarin
-     * - Langkah 3: Pertumbuhan: setiap tanaman hidup dengan petak disiramHariIni == true menambah hariTumbuh sebanyak 1
-     * - Langkah 4: Keringkan tanah: semua petak disiramHariIni = false
-     * - Langkah 8: hari += 1, menitHari = jamMulai * 60
-     * - Langkah 9: Mengembalikan true jika musim telah berakhir (hari > jumlahHariMusim)
+     * Urutan sesuai SPEC bagian 8 (Langkah 1–9).
+     * @param random Dapat disuntik seed untuk unit test deterministik.
      */
-    fun tickHari(state: GameState, config: GameConfig, catalog: Catalog? = null): Boolean {
+    fun tickHari(
+        state: GameState,
+        config: GameConfig,
+        catalog: Catalog? = null,
+        random: kotlin.random.Random = kotlin.random.Random
+    ): Boolean {
         // Langkah 1: Jual isi bin
         if (catalog != null) {
             val pendapatan = Economy.jualIsiBin(state.bin, catalog, config)
@@ -84,10 +69,20 @@ object DaySimulator {
             state.pendapatanKemarin = pendapatan
         }
 
+        // Langkah 2: Selesaikan penanganan tertunda (nabati / perangkap)
+        for (petak in state.petak) {
+            val t = petak.tanaman ?: continue
+            if (t.penangananTertunda != null) {
+                t.hamaId = null
+                t.hamaDiperiksa = false
+                t.penangananTertunda = null
+            }
+        }
+
         // Langkah 3: Pertumbuhan
         for (petak in state.petak) {
-            val t = petak.tanaman
-            if (t != null && !t.mati && petak.disiramHariIni) {
+            val t = petak.tanaman ?: continue
+            if (!t.mati && petak.disiramHariIni) {
                 t.hariTumbuh += 1
             }
         }
@@ -95,6 +90,62 @@ object DaySimulator {
         // Langkah 4: Keringkan tanah
         for (petak in state.petak) {
             petak.disiramHariIni = false
+        }
+
+        // Langkah 5: Dampak hama (kurangi kesehatan, matikan bila <= 0)
+        for (petak in state.petak) {
+            val t = petak.tanaman ?: continue
+            if (!t.mati && t.hamaId != null) {
+                t.kesehatan -= config.kerusakanKesehatanPerHari
+                if (t.kesehatan <= 0) {
+                    t.kesehatan = 0
+                    t.mati = true
+                    t.hamaId = null
+                    t.hamaDiperiksa = false
+                }
+            }
+        }
+
+        // Langkah 6: Penyebaran hama
+        // Ambil snapshot SEBELUM langkah ini agar yang baru tertular tidak ikut menyebar
+        val petakBerhamaSnapshot = state.petak.filter { p ->
+            p.tanaman?.let { !it.mati && it.hamaId != null } == true
+        }
+        val arahEmpat = listOf(Pair(1, 0), Pair(-1, 0), Pair(0, 1), Pair(0, -1))
+        for (petak in petakBerhamaSnapshot) {
+            if (random.nextDouble() < config.peluangMenyebar) {
+                val t = petak.tanaman ?: continue
+                val hamaId = t.hamaId ?: continue
+                val arahDipilih = arahEmpat[random.nextInt(4)]
+                val nx = petak.x + arahDipilih.first
+                val ny = petak.y + arahDipilih.second
+                val tetangga = state.petakAt(nx, ny)
+                if (tetangga != null) {
+                    val tt = tetangga.tanaman
+                    if (tt != null && !tt.mati && tt.hamaId == null && tt.cropId == t.cropId) {
+                        tt.hamaId = hamaId
+                        tt.hamaDiperiksa = false
+                    }
+                }
+            }
+        }
+
+        // Langkah 7: Hama baru muncul (peluang 20%, hanya tahap >= tahapMinimalMuncul)
+        if (catalog != null) {
+            for (petak in state.petak) {
+                val t = petak.tanaman ?: continue
+                if (!t.mati && t.hamaId == null) {
+                    val crop = catalog.cropById[t.cropId] ?: continue
+                    if (crop.hama.isEmpty()) continue
+                    val tahap = hitungTahapGambar(false, t.hariTumbuh, crop.hariTumbuh)
+                    if (tahap >= config.tahapMinimalMuncul) {
+                        if (random.nextDouble() < config.peluangMunculHarian) {
+                            t.hamaId = crop.hama[random.nextInt(crop.hama.size)]
+                            t.hamaDiperiksa = false
+                        }
+                    }
+                }
+            }
         }
 
         // Langkah 8: Hari naik, jam reset

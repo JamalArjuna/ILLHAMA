@@ -4,8 +4,14 @@ package core
  * Hasil dari penggunaan alat pada petak (Spasi).
  */
 sealed class InteractionResult {
-    data class Sukses(val sfx: String? = null) : InteractionResult()
+    /** Aksi berhasil. sfx: kunci efek suara; toastKey: kunci teks toast (opsional). */
+    data class Sukses(val sfx: String? = null, val toastKey: String? = null) : InteractionResult()
+    /** Aksi gagal, tampilkan toast. */
     data class Gagal(val toastKey: String) : InteractionResult()
+    /** Hasil pemeriksaan kaca pembesar: tanaman berhama. */
+    data class PeriksaHama(val pestId: String, val jurnalBaru: Boolean) : InteractionResult()
+    /** Hasil pemeriksaan kaca pembesar: tanaman sehat. */
+    data class PeriksaSehat(val kesehatan: Int) : InteractionResult()
     object TidakAdaAksi : InteractionResult()
 }
 
@@ -15,6 +21,8 @@ sealed class InteractionResult {
 sealed class HandResult {
     data class PanenSukses(val cropId: String, val namaCrop: String, val kualitas: Kualitas) : HandResult()
     object BersihkanSukses : HandResult()
+    /** Hama diambil dengan tangan (metodeBenar == manual). */
+    object ManualBerhasil : HandResult()
     data class Gagal(val toastKey: String) : HandResult()
     object TidakAdaAksi : HandResult()
 }
@@ -94,17 +102,22 @@ object Shop {
 object Interaction {
 
     /**
-     * Menggunakan alat terpilih (slot 1 sampai 6) pada petak sasaran (Spasi).
+     * Menggunakan alat terpilih (slot 1–6) pada petak sasaran (Spasi).
+     * Parameter M4 (modeSemprot, journalTerbuka, catalog) opsional untuk kompatibilitas mundur.
      */
     fun pakaiAlat(
         slot: Int,
         petak: Petak?,
         inventory: Inventory,
-        selectedCropId: String?
+        selectedCropId: String?,
+        // Parameter M4:
+        modeSemprot: Metode = Metode.NABATI,
+        journalTerbuka: MutableSet<String> = mutableSetOf(),
+        catalog: Catalog? = null
     ): InteractionResult {
         if (petak == null) return InteractionResult.TidakAdaAksi
 
-        // Alat tidak berefek pada petak berisi tanaman mati kecuali kaca pembesar
+        // Alat tidak berefek pada tanaman mati kecuali kaca pembesar (slot 3)
         if (petak.tanaman?.mati == true && slot != 3) {
             return InteractionResult.TidakAdaAksi
         }
@@ -126,15 +139,61 @@ object Interaction {
                     InteractionResult.Sukses(sfx = "sfx_siram")
                 }
             }
+            3 -> { // Kaca pembesar
+                val t = petak.tanaman
+                if (t == null || t.mati) return InteractionResult.TidakAdaAksi
+                val hamaId = t.hamaId
+                if (hamaId != null) {
+                    val jurnalBaru = !journalTerbuka.contains(hamaId)
+                    t.hamaDiperiksa = true
+                    journalTerbuka.add(hamaId)
+                    InteractionResult.PeriksaHama(hamaId, jurnalBaru)
+                } else {
+                    InteractionResult.PeriksaSehat(t.kesehatan)
+                }
+            }
+            4 -> { // Penyemprot (nabati atau kimia)
+                val t = petak.tanaman
+                if (t == null || t.hamaId == null) return InteractionResult.Gagal("tidakAdaHama")
+                if (modeSemprot == Metode.NABATI) {
+                    // Nabati: selalu habis bahan, lalu cek metode
+                    if (inventory.nabati <= 0) return InteractionResult.Gagal("bahanHabis")
+                    inventory.nabati -= 1
+                    val pest = catalog?.pestById?.get(t.hamaId)
+                    if (pest?.metodeBenar == "nabati") {
+                        t.penangananTertunda = Metode.NABATI
+                        InteractionResult.Sukses(toastKey = "nabatiDisemprot")
+                    } else {
+                        InteractionResult.Gagal("metodeSalah")
+                    }
+                } else { // KIMIA: langsung hapus hama
+                    if (inventory.kimia <= 0) return InteractionResult.Gagal("bahanHabis")
+                    inventory.kimia -= 1
+                    t.hamaId = null
+                    t.hamaDiperiksa = false
+                    t.penangananTertunda = null
+                    t.pakaiKimia = true
+                    InteractionResult.Sukses(toastKey = "kimiaDipakai")
+                }
+            }
+            5 -> { // Perangkap
+                val t = petak.tanaman
+                if (t == null || t.hamaId == null) return InteractionResult.Gagal("tidakAdaHama")
+                // Perangkap: selalu habis bahan, lalu cek metode
+                if (inventory.perangkap <= 0) return InteractionResult.Gagal("bahanHabis")
+                inventory.perangkap -= 1
+                val pest = catalog?.pestById?.get(t.hamaId)
+                if (pest?.metodeBenar == "perangkap") {
+                    t.penangananTertunda = Metode.PERANGKAP
+                    InteractionResult.Sukses(toastKey = "perangkapDipasang")
+                } else {
+                    InteractionResult.Gagal("metodeSalah")
+                }
+            }
             6 -> { // Biji
-                if (selectedCropId == null) {
-                    return InteractionResult.Gagal("bijiHabis")
-                }
+                if (selectedCropId == null) return InteractionResult.Gagal("bijiHabis")
                 val stokBiji = inventory.biji[selectedCropId] ?: 0
-                if (stokBiji <= 0) {
-                    return InteractionResult.Gagal("bijiHabis")
-                }
-
+                if (stokBiji <= 0) return InteractionResult.Gagal("bijiHabis")
                 if (petak.tanah == TanahState.BELUM_DIOLAH) {
                     InteractionResult.Gagal("perluDiolah")
                 } else if (petak.tanaman != null) {
@@ -151,9 +210,11 @@ object Interaction {
 
     /**
      * Interaksi tangan (E) pada petak sasaran (SPEC bagian 7):
-     * - Tanaman matang, hidup: panen, hitung kualitas, masuk inventory.hasil, petak kembali DIOLAH kosong.
-     * - Tanaman mati: bersihkan, petak kembali DIOLAH kosong.
-     * - Tanaman belum matang: toast belumMatang.
+     * - Mati: bersihkan
+     * - Matang hidup: panen (termasuk saat ada hama)
+     * - Berhama dan metodeBenar == manual: hapus hama
+     * - Berhama dan metode bukan manual: metodeSalah
+     * - Belum matang tanpa hama: belumMatang
      */
     fun interaksiTangan(
         petak: Petak?,
@@ -165,30 +226,41 @@ object Interaction {
         val tanaman = petak.tanaman ?: return HandResult.TidakAdaAksi
 
         if (tanaman.mati) {
-            // Bersihkan tanaman mati
             petak.tanaman = null
             petak.tanah = TanahState.DIOLAH
             return HandResult.BersihkanSukses
         }
 
         val crop = catalog.cropById[tanaman.cropId] ?: return HandResult.TidakAdaAksi
+
         if (tanaman.hariTumbuh >= crop.hariTumbuh) {
-            // Panen tanaman matang
+            // Panen (boleh saat ada hama, kualitas mengikuti kesehatan)
             val kualitas = Economy.hitungKualitas(tanaman.kesehatan, tanaman.pakaiKimia, config)
             val kunci = Pair(tanaman.cropId, kualitas)
             inventory.hasil[kunci] = (inventory.hasil[kunci] ?: 0) + 1
-
             petak.tanaman = null
             petak.tanah = TanahState.DIOLAH
             petak.disiramHariIni = false
             return HandResult.PanenSukses(tanaman.cropId, crop.nama, kualitas)
-        } else {
-            return HandResult.Gagal("belumMatang")
         }
+
+        // Belum matang — cek hama
+        if (tanaman.hamaId != null) {
+            val pest = catalog.pestById[tanaman.hamaId]
+            return if (pest?.metodeBenar == "manual") {
+                tanaman.hamaId = null
+                tanaman.hamaDiperiksa = false
+                HandResult.ManualBerhasil
+            } else {
+                HandResult.Gagal("metodeSalah")
+            }
+        }
+
+        return HandResult.Gagal("belumMatang")
     }
 
     /**
-     * Memindahkan seluruh hasil panen dari inventory ke shipping bin (SPEC bagian 7).
+     * Memindahkan seluruh hasil panen dari inventory ke shipping bin.
      * Mengembalikan jumlah item yang berhasil dimasukkan.
      */
     fun masukkanKeBin(

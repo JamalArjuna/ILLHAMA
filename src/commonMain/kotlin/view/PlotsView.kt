@@ -11,13 +11,14 @@ import korlibs.korge.view.image
 import korlibs.math.geom.RectangleInt
 
 /**
- * PlotsView merender 48 petak lahan (8 kolom x 6 baris) mulai dari origin tile (3, 7).
- * Merender keadaan tanah (tile 3: belum diolah, 4: diolah kering, 5: diolah basah)
- * dan sprite tanaman di atasnya dari crops.png (80x48, 5 kolom x 3 baris) dengan nearest-neighbor.
+ * PlotsView merender 48 petak lahan (8 kolom x 6 baris).
+ * Merender: keadaan tanah, sprite tanaman, dan ikon hama (! atau sprite hama).
  */
 class PlotsView(
     val tilesetBitmap: Bitmap,
     val cropsBitmap: Bitmap,
+    val pestsBitmap: Bitmap,
+    val ikonBitmap: Bitmap,
     val originCol: Int = 3,
     val originRow: Int = 7,
     val kolomLahan: Int = 8,
@@ -25,8 +26,7 @@ class PlotsView(
     val tileSize: Int = 16
 ) : Container() {
 
-    // Pre-slice tile tanah: 3 (belum diolah), 4 (diolah), 5 (basah)
-    // Tileset berukuran 64x64 (4 kolom x 4 baris)
+    // Pre-slice tile tanah
     private val tilesetKolom = tilesetBitmap.width / tileSize
     private fun potongTile(id: Int): BmpSlice {
         val tx = (id % tilesetKolom) * tileSize
@@ -38,16 +38,29 @@ class PlotsView(
     private val tileDiolahKering = potongTile(4)
     private val tileDiolahBasah = potongTile(5)
 
-    // Pre-slice crops.png: 3 baris (padi, jagung, cabai) x 5 kolom (tahap 0..3, 4=layu)
+    // Pre-slice crops.png: 3 baris x 5 kolom (tahap 0..3, 4=layu)
     private val cropSlices: Array<Array<BmpSlice>> = Array(3) { row ->
         Array(5) { col ->
             cropsBitmap.slice(RectangleInt(col * tileSize, row * tileSize, tileSize, tileSize))
         }
     }
 
+    // Pre-slice pests.png: 6 sprite hama (96x16, masing-masing 16x16 mendatar)
+    private val pestSprites: Array<BmpSlice> = Array(6) { i ->
+        pestsBitmap.slice(RectangleInt(i * tileSize, 0, tileSize, tileSize))
+    }
+
+    // Ikon tanda seru (ikon.png index 6, 4x4 grid 16x16)
+    private val ikonTandaSeru: BmpSlice = run {
+        val col = 6 % 4   // = 2
+        val row = 6 / 4   // = 1
+        ikonBitmap.slice(RectangleInt(col * tileSize, row * tileSize, tileSize, tileSize))
+    }
+
     private class SinglePlotView(
         val groundImage: Image,
-        val cropImage: Image
+        val cropImage: Image,
+        val pestIconImage: Image
     )
 
     private val plotViews = mutableListOf<SinglePlotView>()
@@ -72,7 +85,13 @@ class PlotsView(
                     visible = false
                 }
 
-                plotViews.add(SinglePlotView(groundImg, cropImg))
+                // Ikon hama ditampilkan di atas sprite tanaman
+                val pestIconImg = plotContainer.image(ikonTandaSeru) {
+                    smoothing = false
+                    visible = false
+                }
+
+                plotViews.add(SinglePlotView(groundImg, cropImg, pestIconImg))
             }
         }
     }
@@ -103,6 +122,22 @@ class PlotsView(
                 }
             } else {
                 view.cropImage.visible = false
+            }
+
+            // 3. Ikon hama di atas tanaman
+            val hamaId = tanaman?.hamaId
+            if (hamaId != null && tanaman != null && !tanaman.mati) {
+                val pestData = catalog.pestById[hamaId]
+                if (tanaman.hamaDiperiksa && pestData != null) {
+                    // Sudah diperiksa: tampilkan sprite hama
+                    view.pestIconImage.bitmap = pestSprites[pestData.spriteIndex.coerceIn(0, 5)]
+                } else {
+                    // Belum diperiksa: tampilkan tanda seru
+                    view.pestIconImage.bitmap = ikonTandaSeru
+                }
+                view.pestIconImage.visible = true
+            } else {
+                view.pestIconImage.visible = false
             }
         }
     }

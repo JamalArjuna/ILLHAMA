@@ -17,7 +17,8 @@ import view.*
 
 /**
  * GameScene: Layar utama permainan.
- * Memuat peta, lahan tanam (PlotsView), pemain, penanda petak, jam, HUD, Hotbar, ShopPanel, dan toast.
+ * Memuat peta, lahan tanam (PlotsView), pemain, penanda petak, jam, HUD, Hotbar,
+ * ShopPanel, InspectPanel, JournalPanel, dan toast.
  */
 class GameScene : Scene() {
     override suspend fun SContainer.sceneMain() {
@@ -36,7 +37,7 @@ class GameScene : Scene() {
         val mapJsonString = resourcesVfs["map/map.json"].readString()
         val mapData = MapJsonData.dari(mapJsonString)
 
-        // 2. Inisialisasi GameState (uang awal 500, tanpa biji awal sesuai M3)
+        // 2. Inisialisasi GameState
         val gameState = GameState(
             hari = 1,
             menitHari = config.jamMulai * 60,
@@ -52,12 +53,18 @@ class GameScene : Scene() {
         // 4. Muat aset grafis
         val tilesetBitmap = resourcesVfs["assets/art/tileset.png"].readBitmap()
         val cropsBitmap = resourcesVfs["assets/art/crops.png"].readBitmap()
+        val pestsBitmap = resourcesVfs["assets/art/pests.png"].readBitmap()
         val playerBitmap = resourcesVfs["assets/art/player.png"].readBitmap()
         val penandaBitmap = resourcesVfs["assets/art/penanda_petak.png"].readBitmap()
         val slotBitmap = resourcesVfs["assets/art/slot.png"].readBitmap()
         val slotSelectedBitmap = resourcesVfs["assets/art/slot_terpilih.png"].readBitmap()
         val ikonBitmap = resourcesVfs["assets/art/ikon.png"].readBitmap()
         val panelBitmap = resourcesVfs["assets/art/panel.png"].readBitmap()
+
+        // Muat ilustrasi jurnal untuk tiap hama
+        val journalBitmaps = catalog.pests.associate { pest ->
+            pest.id to resourcesVfs["assets/art/jurnal_${pest.id}.png"].readBitmap()
+        }
 
         // 5. Render peta dan lahan
         val mapView = MapView(tilesetBitmap, mapData, tileSize = config.tileSize)
@@ -66,6 +73,8 @@ class GameScene : Scene() {
         val plotsView = PlotsView(
             tilesetBitmap = tilesetBitmap,
             cropsBitmap = cropsBitmap,
+            pestsBitmap = pestsBitmap,
+            ikonBitmap = ikonBitmap,
             originCol = config.lahanOriginTile[0],
             originRow = config.lahanOriginTile[1],
             kolomLahan = config.lahanKolom,
@@ -104,11 +113,19 @@ class GameScene : Scene() {
         // 9. ToastView
         val toastView = ToastView(config)
 
-        // 10. ShopPanel
+        // 10. Dialog Panels: ShopPanel, InspectPanel, JournalPanel
         val shopPanel = ShopPanel(panelBitmap, ikonBitmap, catalog) { pesan ->
             toastView.show(pesan)
         }
         addChild(shopPanel)
+
+        val journalPanel = JournalPanel(panelBitmap, pestsBitmap, ikonBitmap, journalBitmaps, catalog)
+
+        val inspectPanel = InspectPanel(panelBitmap, pestsBitmap, catalog) {
+            journalPanel.open(gameState)
+        }
+        addChild(inspectPanel)
+        addChild(journalPanel)
 
         // Toast selalu di lapisan teratas
         addChild(toastView)
@@ -161,12 +178,40 @@ class GameScene : Scene() {
 
             val petak = gameState.petakAt(target.lahanCol, target.lahanRow)
             val slot = hotbarView.selectedSlot
-            val hasil = Interaction.pakaiAlat(slot, petak, gameState.inventory, selectedCropId)
+            val hasil = Interaction.pakaiAlat(
+                slot = slot,
+                petak = petak,
+                inventory = gameState.inventory,
+                selectedCropId = selectedCropId,
+                modeSemprot = gameState.modeSemprot,
+                journalTerbuka = gameState.journalTerbuka,
+                catalog = catalog
+            )
 
             when (hasil) {
+                is InteractionResult.PeriksaHama -> {
+                    val pest = catalog.pestById[hasil.pestId]
+                    if (pest != null) {
+                        inspectPanel.open(pest)
+                    }
+                    if (hasil.jurnalBaru) {
+                        val template = catalog.texts.toast["journalBaru"] ?: "Journal baru terbuka: {nama}."
+                        val pestNama = pest?.nama ?: hasil.pestId
+                        toastView.show(template.replace("{nama}", pestNama))
+                    }
+                    plotsView.update(gameState, catalog)
+                }
+                is InteractionResult.PeriksaSehat -> {
+                    val template = catalog.texts.toast["tanamanSehat"] ?: "Tanaman ini tampak sehat (kesehatan {kesehatan})."
+                    toastView.show(template.replace("{kesehatan}", hasil.kesehatan.toString()))
+                }
                 is InteractionResult.Sukses -> {
                     if (hasil.sfx == "sfx_cangkul") Sfx.playCangkul()
                     if (hasil.sfx == "sfx_siram") Sfx.playSiram()
+                    if (hasil.toastKey != null) {
+                        val pesan = catalog.texts.toast[hasil.toastKey] ?: hasil.toastKey
+                        toastView.show(pesan)
+                    }
                     plotsView.update(gameState, catalog)
                     hotbarView.update(gameState, selectedCropId)
                 }
@@ -174,6 +219,8 @@ class GameScene : Scene() {
                     val pesan = catalog.texts.toast[hasil.toastKey] ?: hasil.toastKey
                     toastView.show(pesan)
                     Sfx.playGagal()
+                    plotsView.update(gameState, catalog)
+                    hotbarView.update(gameState, selectedCropId)
                 }
                 is InteractionResult.TidakAdaAksi -> {}
             }
@@ -222,6 +269,11 @@ class GameScene : Scene() {
                             .replace("{kualitas}", kualitasStr)
                         toastView.show(msg)
                     }
+                    is HandResult.ManualBerhasil -> {
+                        plotsView.update(gameState, catalog)
+                        val msg = catalog.texts.toast["manualBerhasil"] ?: "Hama berhasil diambil."
+                        toastView.show(msg)
+                    }
                     is HandResult.BersihkanSukses -> {
                         plotsView.update(gameState, catalog)
                         val msg = catalog.texts.toast["petakDibersihkan"] ?: "Petak dibersihkan."
@@ -230,6 +282,7 @@ class GameScene : Scene() {
                     is HandResult.Gagal -> {
                         val msg = catalog.texts.toast[hasilTangan.toastKey] ?: hasilTangan.toastKey
                         toastView.show(msg)
+                        Sfx.playGagal()
                     }
                     is HandResult.TidakAdaAksi -> {}
                 }
@@ -238,11 +291,23 @@ class GameScene : Scene() {
 
         // 11. Event tombol sekali tekan
         keys.down { key ->
-            // Jika ShopPanel sedang terbuka, seluruh navigasi dialihkan ke ShopPanel
+            // Panel ShopPanel
             if (shopPanel.isOpen) {
                 shopPanel.handleKeyDown(key.key)
                 hudView.update(gameState)
                 hotbarView.update(gameState, selectedCropId)
+                return@down
+            }
+
+            // Panel InspectPanel
+            if (inspectPanel.isOpen) {
+                inspectPanel.handleKeyDown(key.key)
+                return@down
+            }
+
+            // Panel JournalPanel
+            if (journalPanel.isOpen) {
+                journalPanel.handleKeyDown(key.key)
                 return@down
             }
 
@@ -258,6 +323,9 @@ class GameScene : Scene() {
                     gameState.modeSemprot = if (gameState.modeSemprot == Metode.NABATI) Metode.KIMIA else Metode.NABATI
                     hotbarView.update(gameState, selectedCropId)
                 }
+                Key.J -> {
+                    journalPanel.open(gameState)
+                }
                 Key.SPACE -> gunakanAlat()
                 Key.E -> interaksiTanganAtauObjek()
                 Key.F1 -> {
@@ -266,7 +334,10 @@ class GameScene : Scene() {
                         for (cropId in allCropIds) {
                             gameState.inventory.biji[cropId] = (gameState.inventory.biji[cropId] ?: 0) + 5
                         }
-                        toastView.show("+Rp 1000 & +5 biji tiap jenis")
+                        gameState.inventory.nabati += 5
+                        gameState.inventory.perangkap += 5
+                        gameState.inventory.kimia += 5
+                        toastView.show("+Rp 1000 & +5 bahan tiap jenis")
                         hudView.update(gameState)
                         hotbarView.update(gameState, selectedCropId)
                     }
@@ -276,13 +347,53 @@ class GameScene : Scene() {
                         gantiHari()
                     }
                 }
+                Key.F3 -> {
+                    if (config.debugAktif) {
+                        // Paksa hama muncul di semua tanaman tahap >= 1 (SPEC bagian 12)
+                        var munculCount = 0
+                        for (petak in gameState.petak) {
+                            val t = petak.tanaman
+                            if (t != null && !t.mati && t.hamaId == null) {
+                                val crop = catalog.cropById[t.cropId]
+                                if (crop != null && crop.hama.isNotEmpty()) {
+                                    val tahap = t.tahapGambar(crop.hariTumbuh)
+                                    if (tahap >= config.tahapMinimalMuncul) {
+                                        t.hamaId = crop.hama.first()
+                                        t.hamaDiperiksa = false
+                                        munculCount++
+                                    }
+                                }
+                            }
+                        }
+                        plotsView.update(gameState, catalog)
+                        toastView.show("Debug: $munculCount tanaman terserang hama")
+                    }
+                }
+                Key.F4 -> {
+                    if (config.debugAktif) {
+                        // Matangkan semua tanaman (SPEC bagian 12)
+                        var matangCount = 0
+                        for (petak in gameState.petak) {
+                            val t = petak.tanaman
+                            if (t != null && !t.mati) {
+                                val crop = catalog.cropById[t.cropId]
+                                if (crop != null) {
+                                    t.hariTumbuh = crop.hariTumbuh
+                                    matangCount++
+                                }
+                            }
+                        }
+                        plotsView.update(gameState, catalog)
+                        toastView.show("Debug: $matangCount tanaman matang")
+                    }
+                }
                 else -> {}
             }
         }
 
         // Mouse scroll untuk mengganti slot hotbar
         onScroll { event ->
-            if (!shopPanel.isOpen) {
+            if (!shopPanel.isOpen && !inspectPanel.isOpen && !journalPanel.isOpen) {
                 if (event.scrollDeltaYLines > 0) hotbarView.cycleSlot(1)
                 else if (event.scrollDeltaYLines < 0) hotbarView.cycleSlot(-1)
             }
@@ -292,8 +403,8 @@ class GameScene : Scene() {
         addFastUpdater { fastDuration ->
             val dt = fastDuration.seconds
 
-            // Jika ShopPanel sedang terbuka, waktu berhenti dan pemain tidak bergerak
-            if (shopPanel.isOpen) {
+            // Jika ada panel terbuka, waktu berhenti dan pemain tidak bergerak
+            if (shopPanel.isOpen || inspectPanel.isOpen || journalPanel.isOpen) {
                 toastView.update(dt)
                 return@addFastUpdater
             }

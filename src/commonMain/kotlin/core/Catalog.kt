@@ -45,7 +45,35 @@ data class ItemsData(
     val urutanDiToko: List<String>
 )
 
-// DTO texts_id.json — kita pakai JsonElement agar tidak perlu semua field di sini
+// Teks Journal (nested di texts_id.json)
+@Serializable
+data class JournalLabelTexts(
+    val tanaman: String = "Menyerang",
+    val ciri: String = "Ciri",
+    val gejala: String = "Gejala",
+    val caraKendali: String = "Cara kendali"
+)
+
+@Serializable
+data class JournalTexts(
+    val judul: String = "Pest Journal",
+    val terkunci: String = "???",
+    val terkunciDeskripsi: String = "Periksa hama ini dengan Kaca Pembesar untuk membuka catatannya.",
+    val label: JournalLabelTexts = JournalLabelTexts(),
+    val petunjuk: String = "Kiri/Kanan atau Atas/Bawah: pilih   J atau Esc: tutup",
+    val terbuka: String = "{terbuka}/{total} terbuka"
+)
+
+// Teks panel Pemeriksaan (kaca pembesar)
+@Serializable
+data class PeriksaTexts(
+    val judul: String = "Hasil pemeriksaan",
+    val gejala: String = "Gejala: {gejala}",
+    val jenis: String = "Hama: {nama} ({ilmiah})",
+    val petunjuk: String = "Pilih cara pengendalian yang tepat. Detailnya ada di Journal (tekan J)."
+)
+
+// DTO texts_id.json
 @Serializable
 data class TextsData(
     val judulGame: String,
@@ -55,7 +83,9 @@ data class TextsData(
     val hud: Map<String, String> = emptyMap(),
     val tidur: Map<String, String> = emptyMap(),
     val toko: Map<String, String> = emptyMap(),
-    val bin: Map<String, String> = emptyMap()
+    val bin: Map<String, String> = emptyMap(),
+    val periksa: PeriksaTexts = PeriksaTexts(),
+    val journal: JournalTexts = JournalTexts()
 )
 
 /**
@@ -92,13 +122,12 @@ class Catalog private constructor(
     fun cropDariId(id: String): CropData = cropById[id] ?: error("Crop tidak ditemukan: $id")
     fun pestDariId(id: String): PestData = pestById[id] ?: error("Pest tidak ditemukan: $id")
 
-    /** Validasi: setiap referensi hama di tiap tanaman harus ada di daftar hama */
     fun validasiRujukan(): List<String> {
         val errors = mutableListOf<String>()
         for (crop in crops) {
             for (hamaId in crop.hama) {
                 if (!pestById.containsKey(hamaId)) {
-                    errors += "Crop '${crop.id}' merujuk hama '${hamaId}' yang tidak ada di pests.json"
+                    errors += "Crop '${crop.id}' merujuk hama '$hamaId' yang tidak ada di pests.json"
                 }
             }
         }

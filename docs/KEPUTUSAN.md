@@ -118,3 +118,41 @@ Dokumen ini mencatat keputusan-keputusan teknis dan resolusi ambiguitas yang dia
    - Menambahkan `sfx_beli.wav` saat transaksi toko berhasil.
    - Menambahkan `sfx_panen.wav` saat pemain memanen hasil tanaman.
    - Menambahkan `sfx_jual.wav` saat hasil panen dimasukkan ke shipping bin.
+
+---
+
+## Milestone M4 (Sistem Hama & Pest Journal) - 19 November 2026
+
+1. **Urutan Siklus Pergantian Hari dengan Hama (`core/DaySimulator.kt`):**
+   - Diimplementasikan murni di `core/DaySimulator.kt` dengan parameter `Random` yang dapat disuntikkan seed.
+   - Langkah 2: Selesaikan penanganan tertunda (nabati / perangkap). Hama dihapus sebelum langkah 5, sehingga tanaman tidak menderita kerusakan kesehatan.
+   - Langkah 5: Dampak hama mengurangi 25 kesehatan per hari (`kerusakanKesehatanPerHari`). Tanaman mati saat kesehatan `<= 0` (mati pada pergantian hari ke-4 setelah hama muncul).
+   - Langkah 6: Penyebaran hama mengambil *snapshot* petak berhama sebelum penyebaran (peluang 30%). Memilih tetangga 4-arah secara acak; penularan hanya terjadi jika tetangga adalah tanaman hidup dari `cropId` yang sama dan belum berhama.
+   - Langkah 7: Kemunculan hama baru (peluang 20%) hanya pada tanaman hidup tanpa hama yang mencapai tahap gambar `>= tahapMinimalMuncul` (tahap >= 1). Jenis hama diambil acak dari `crop.hama`.
+
+2. **Aturan Pengendalian Hama (`core/Interaction.kt`):**
+   - Slot 3 (Kaca Pembesar): Jika tanaman berhama, mencatat `hamaDiperiksa = true`, menambahkan id ke `GameState.journalTerbuka`, memicu toast `journalBaru` bila baru, dan membuka `InspectPanel`. Jika tanaman sehat, menampilkan toast `tanamanSehat` beserta nilai kesehatan.
+   - Slot 4 (Penyemprot):
+     - Mode NABATI: Membutuhkan 1 stok nabati. Bahan selalu berkurang. Jika metode benar adalah `nabati`, menyetel `penangananTertunda = Metode.NABATI` (sembuh esok hari tanpa kerusakan). Jika salah, toast `metodeSalah` dan memutar suara gagal.
+     - Mode KIMIA: Membutuhkan 1 stok kimia. Bahan berkurang, hama hilang seketika, dan `pakaiKimia = true` (membatasi kualitas panen petak tersebut maksimal BIASA).
+   - Slot 5 (Perangkap): Membutuhkan 1 stok perangkap. Bahan selalu berkurang. Jika metode benar adalah `perangkap`, menyetel `penangananTertunda = Metode.PERANGKAP`. Jika salah, toast `metodeSalah` dan memutar suara gagal.
+   - Tangan (E): Jika tanaman belum matang dan memiliki hama dengan `metodeBenar == manual`, hama berhasil diambil seketika (`manualBerhasil`). Jika metodenya bukan manual, ditolak dengan toast `metodeSalah` tanpa biaya bahan.
+
+3. **Tampilan Lahan dan Ikon Hama (`view/PlotsView.kt`):**
+   - Menampilkan ikon tanda seru (`ikon.png` indeks 6) di atas petak yang berhama namun belum diperiksa (`hamaDiperiksa == false`).
+   - Menampilkan sprite hama spesifik dari `pests.png` (indeks 0..5) di atas petak setelah tanaman diperiksa (`hamaDiperiksa == true`).
+
+4. **Panel Pemeriksaan (`view/InspectPanel.kt`):**
+   - Menggunakan 9-slice `panel.png` berukuran 320×175 piksel.
+   - Menampilkan nama hama, nama ilmiah, jenis tanaman yang diserang, gejala (dengan *word wrap*), dan tombol pintas ke Journal (tombol J).
+
+5. **Pest Journal (`view/JournalPanel.kt`):**
+   - Dibuka dengan tombol J atau dari InspectPanel, berukuran 430×245 piksel (9-slice `panel.png`).
+   - Kolom kiri menampilkan daftar 6 hama dengan indikator gembok / sprite hama dan nama atau "???".
+   - Kolom kanan menampilkan ilustrasi `jurnal_<id>.png` (64×64 px) normal atau siluet gelap (`Colors["#222222"]`), nama, nama ilmiah, ciri, gejala, cara kendali, dan tip permainan.
+   - Header menampilkan rasio kemajuan `{terbuka}/{total} terbuka`.
+   - Navigasi menggunakan W/S/A/D atau panah, ditutup dengan J atau Esc.
+
+6. **Tombol Debug M4 (`scenes/GameScene.kt`):**
+   - F3: Memaksa kemunculan hama pada seluruh tanaman tahap `>= 1`.
+   - F4: Mematangkan seluruh tanaman hidup di ladang (`hariTumbuh = crop.hariTumbuh`).
