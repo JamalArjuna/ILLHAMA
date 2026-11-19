@@ -156,3 +156,39 @@ Dokumen ini mencatat keputusan-keputusan teknis dan resolusi ambiguitas yang dia
 6. **Tombol Debug M4 (`scenes/GameScene.kt`):**
    - F3: Memaksa kemunculan hama pada seluruh tanaman tahap `>= 1`.
    - F4: Mematangkan seluruh tanaman hidup di ladang (`hariTumbuh = crop.hariTumbuh`).
+
+---
+
+## Milestone M5 (Ringkasan, Tutorial, Save/Load, Layar Akhir, & Polish) - 19 November 2026
+
+1. **Panel Konfirmasi Tidur (`view/ConfirmSleepPanel.kt`):**
+   - Terpicu saat pemain berdiri di depan pintu rumah `(5, 3)` dan menekan tombol E.
+   - Menggunakan dialog 9-slice `panel.png` berukuran 240×110 piksel dengan pilihan "Ya" dan "Belum". Pilihan "Ya" menjalankan siklus pergantian hari `gantiHari()`.
+
+2. **Ringkasan Harian (`view/SummaryPanel.kt` & `core/DaySimulator.kt`):**
+   - Menampilkan ringkasan harian saat pagi tiba: pendapatan kemarin dari bin, jumlah hama yang hilang di langkah 2, dan jumlah tanaman yang mati di langkah 5.
+   - Data dikumpulkan langsung pada eksekusi `DaySimulator.tickHari` dan disimpan di `GameState.summaryKemarin` sebagai `DaySummary`.
+
+3. **Tutorial Hari 1 & Petunjuk Kejadian (`view/TutorialHint.kt`):**
+   - Kotak petunjuk semi-transparan di bagian atas layar `(x=10, y=4)`.
+   - Melacak tahapan tutorial hari 1 dari `texts_id.json.tutorial` yang maju secara dinamis berdasarkan event: `pemain_bergerak`, `toko_dibuka`, `biji_dibeli`, `petak_diolah`, `tanaman_ditanam`, `tanaman_disiram`, dan `hari_berganti`.
+   - Menampilkan petunjuk kejadian khusus sekali seumur hidup untuk `hama_pertama` dan `matang_pertama`.
+
+4. **Sistem Simpan dan Muat (`core/SaveData.kt`):**
+   - Menyimpan seluruh status permainan (hari, menit, uang, inventaris, bin, 48 petak lengkap, journalTerbuka, tutorialIndex, modeSemprot) ke dalam JSON dengan kunci `save_v1` via `views.storage` (NativeStorage KorGE).
+   - Simpan otomatis dieksekusi di Langkah 9 pergantian hari.
+   - Deserialisasi menangani data rusak atau versi tidak cocok secara aman tanpa *crash* (mengembalikan `null`).
+   - Tombol "Lanjutkan" di `TitleScene` aktif jika save data valid dan musim belum tamat (`hari <= 14`).
+
+5. **Layar Akhir & Rating Bintang (`scenes/EndScene.kt` & `core/Economy.kt`):**
+   - Perhitungan rating bintang diimplementasikan murni di `Economy.hitungRating` sesuai SPEC bagian 9 (0 bintang bila < 1500, 1 bintang bila >= 1500, 2 bintang bila >= 3000 atau >= 4500 dengan journal < 6, 3 bintang bila >= 4500 dengan journal 6/6).
+   - Menampilkan 3 bintang visual dari `ikon.png` (indeks 8 bintang penuh, indeks 9 bintang kosong), uang akhir, progres journal, dan pesan motivasi.
+   - Save data otomatis dihapus saat musim tamat.
+
+6. **Audio, BGM Loop, & Fitur Mute (`audio/Sfx.kt`):**
+   - Memutar `bgm_ladang.wav` secara *looping* (volume 0.25) selama permainan di `GameScene` dan berhenti saat ke `EndScene`.
+   - Tombol **M** men-toggle mode senyap (mute) untuk BGM dan seluruh efek suara SFX dengan notifikasi toast.
+
+7. **Layar Judul & Dialog Kredit (`scenes/TitleScene.kt`):**
+   - Menyediakan menu navigasi: Mulai Baru, Lanjutkan, Kredit, dan Keluar.
+   - Dialog kredit memuat atribusi CC0 1.0 untuk seluruh aset grafis, audio, dan peta.

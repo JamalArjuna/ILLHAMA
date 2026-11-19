@@ -46,6 +46,13 @@ data class Inventory(
     val hasil: MutableMap<Pair<String, Kualitas>, Int> = mutableMapOf()   // hasil panen
 )
 
+data class DaySummary(
+    val hariSebelumnya: Int,
+    val pendapatan: Int,
+    val hamaDitangani: Int,
+    val tanamanMati: Int
+)
+
 data class GameState(
     var hari: Int = 1,                         // 1..14
     var menitHari: Int = 6 * 60,               // menit sejak 00:00, mulai 06:00
@@ -56,7 +63,10 @@ data class GameState(
     val journalTerbuka: MutableSet<String> = mutableSetOf(),    // id hama yang pernah diperiksa
     var tutorialIndex: Int = 0,
     var modeSemprot: Metode = Metode.NABATI,   // NABATI atau KIMIA
-    var pendapatanKemarin: Int = 0
+    var pendapatanKemarin: Int = 0,
+    var summaryKemarin: DaySummary? = null,
+    var hamaPertamaMuncul: Boolean = false,
+    var matangPertamaMuncul: Boolean = false
 ) {
     fun petakAt(x: Int, y: Int): Petak? {
         if (x !in 0..7 || y !in 0..5) return null

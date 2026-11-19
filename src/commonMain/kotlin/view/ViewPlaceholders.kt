@@ -1,6 +1,3 @@
 package view
 
-/** Placeholder untuk milestone berikutnya. */
-class SummaryPanel
-class ConfirmSleepPanel
-class TutorialHint
+// Semua view telah diimplementasikan penuh.

@@ -66,4 +66,23 @@ object Economy {
         bin.clear()
         return totalPendapatan
     }
+
+    /**
+     * Menghitung rating bintang akhir (SPEC bagian 9):
+     * - uang < config.bintang1 (1500) -> 0 bintang
+     * - uang >= config.bintang1 -> 1 bintang
+     * - uang >= config.bintang2 (3000) -> 2 bintang
+     * - uang >= config.bintang3 (4500) DAN journal >= config.journalPenuhUntukBintang3 (6) -> 3 bintang
+     * - jika uang >= config.bintang3 tetapi journal belum penuh -> 2 bintang
+     */
+    fun hitungRating(uang: Int, jumlahJournalTerbuka: Int, config: GameConfig): Int {
+        return when {
+            uang >= config.bintang3 -> {
+                if (jumlahJournalTerbuka >= config.journalPenuhUntukBintang3) 3 else 2
+            }
+            uang >= config.bintang2 -> 2
+            uang >= config.bintang1 -> 1
+            else -> 0
+        }
+    }
 }

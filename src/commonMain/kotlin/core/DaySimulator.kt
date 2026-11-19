@@ -62,20 +62,25 @@ object DaySimulator {
         catalog: Catalog? = null,
         random: kotlin.random.Random = kotlin.random.Random
     ): Boolean {
+        val hariSebelumnya = state.hari
+
         // Langkah 1: Jual isi bin
+        var pendapatan = 0
         if (catalog != null) {
-            val pendapatan = Economy.jualIsiBin(state.bin, catalog, config)
+            pendapatan = Economy.jualIsiBin(state.bin, catalog, config)
             state.uang += pendapatan
             state.pendapatanKemarin = pendapatan
         }
 
         // Langkah 2: Selesaikan penanganan tertunda (nabati / perangkap)
+        var hamaDitangani = 0
         for (petak in state.petak) {
             val t = petak.tanaman ?: continue
             if (t.penangananTertunda != null) {
                 t.hamaId = null
                 t.hamaDiperiksa = false
                 t.penangananTertunda = null
+                hamaDitangani += 1
             }
         }
 
@@ -93,6 +98,7 @@ object DaySimulator {
         }
 
         // Langkah 5: Dampak hama (kurangi kesehatan, matikan bila <= 0)
+        var tanamanMati = 0
         for (petak in state.petak) {
             val t = petak.tanaman ?: continue
             if (!t.mati && t.hamaId != null) {
@@ -102,9 +108,18 @@ object DaySimulator {
                     t.mati = true
                     t.hamaId = null
                     t.hamaDiperiksa = false
+                    tanamanMati += 1
                 }
             }
         }
+
+        // Simpan data ringkasan harian
+        state.summaryKemarin = DaySummary(
+            hariSebelumnya = hariSebelumnya,
+            pendapatan = pendapatan,
+            hamaDitangani = hamaDitangani,
+            tanamanMati = tanamanMati
+        )
 
         // Langkah 6: Penyebaran hama
         // Ambil snapshot SEBELUM langkah ini agar yang baru tertular tidak ikut menyebar

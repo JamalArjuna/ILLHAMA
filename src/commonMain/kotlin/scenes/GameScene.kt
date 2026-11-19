@@ -10,6 +10,7 @@ import korlibs.io.file.std.resourcesVfs
 import korlibs.korge.input.keys
 import korlibs.korge.input.onScroll
 import korlibs.korge.scene.Scene
+import korlibs.korge.service.storage.storage
 import korlibs.korge.view.SContainer
 import korlibs.korge.view.addFastUpdater
 import korlibs.korge.view.solidRect
@@ -18,9 +19,10 @@ import view.*
 /**
  * GameScene: Layar utama permainan.
  * Memuat peta, lahan tanam (PlotsView), pemain, penanda petak, jam, HUD, Hotbar,
- * ShopPanel, InspectPanel, JournalPanel, dan toast.
+ * ShopPanel, InspectPanel, JournalPanel, ConfirmSleepPanel, SummaryPanel, TutorialHint, dan toast.
  */
-class GameScene : Scene() {
+class GameScene(val savedState: GameState? = null) : Scene() {
+
     override suspend fun SContainer.sceneMain() {
         solidRect(width, height, Colors["#0a1f14"])
 
@@ -37,8 +39,8 @@ class GameScene : Scene() {
         val mapJsonString = resourcesVfs["map/map.json"].readString()
         val mapData = MapJsonData.dari(mapJsonString)
 
-        // 2. Inisialisasi GameState
-        val gameState = GameState(
+        // 2. Inisialisasi GameState (gunakan savedState jika melanjutkan)
+        val gameState = savedState ?: GameState(
             hari = 1,
             menitHari = config.jamMulai * 60,
             uang = config.uangAwal
@@ -47,8 +49,9 @@ class GameScene : Scene() {
         val allCropIds = catalog.crops.map { it.id }
         var selectedCropId: String = allCropIds.firstOrNull() ?: "padi"
 
-        // 3. Muat efek suara (SFX)
+        // 3. Muat efek suara dan putar BGM berulang
         Sfx.load()
+        Sfx.playBgm(coroutineContext)
 
         // 4. Muat aset grafis
         val tilesetBitmap = resourcesVfs["assets/art/tileset.png"].readBitmap()
@@ -82,6 +85,7 @@ class GameScene : Scene() {
             tileSize = config.tileSize
         )
         addChild(plotsView)
+        plotsView.update(gameState, catalog)
 
         // 6. Penanda petak sasaran di lahan
         val penandaView = PenandaPetakView(penandaBitmap, tileSize = config.tileSize)
@@ -106,14 +110,20 @@ class GameScene : Scene() {
         // 8. HUD dan Hotbar
         val hudView = HudView(config, catalog)
         addChild(hudView)
+        hudView.update(gameState)
 
         val hotbarView = HotbarView(slotBitmap, slotSelectedBitmap, ikonBitmap)
         addChild(hotbarView)
+        hotbarView.update(gameState, selectedCropId)
 
-        // 9. ToastView
+        // 9. TutorialHint di atas layar
+        val tutorialHint = TutorialHint(catalog)
+        addChild(tutorialHint)
+
+        // 10. ToastView
         val toastView = ToastView(config)
 
-        // 10. Dialog Panels: ShopPanel, InspectPanel, JournalPanel
+        // 11. Dialog Panels
         val shopPanel = ShopPanel(panelBitmap, ikonBitmap, catalog) { pesan ->
             toastView.show(pesan)
         }
@@ -126,6 +136,16 @@ class GameScene : Scene() {
         }
         addChild(inspectPanel)
         addChild(journalPanel)
+
+        val summaryPanel = SummaryPanel(panelBitmap, catalog)
+        addChild(summaryPanel)
+
+        lateinit var gantiHariFn: () -> Unit
+
+        val confirmSleepPanel = ConfirmSleepPanel(panelBitmap, catalog) {
+            gantiHariFn()
+        }
+        addChild(confirmSleepPanel)
 
         // Toast selalu di lapisan teratas
         addChild(toastView)
@@ -148,6 +168,13 @@ class GameScene : Scene() {
             hotbarView.update(gameState, selectedCropId)
         }
 
+        fun simpanGame() {
+            try {
+                val jsonString = SaveData.serialize(gameState)
+                views.storage[SaveData.KUNCI_SAVE] = jsonString
+            } catch (_: Throwable) {}
+        }
+
         fun gantiHari() {
             val musimSelesai = DaySimulator.tickHari(gameState, config, catalog)
             plotsView.update(gameState, catalog)
@@ -155,22 +182,25 @@ class GameScene : Scene() {
             hotbarView.update(gameState, selectedCropId)
 
             if (musimSelesai) {
+                Sfx.stopBgm()
+                val rating = Economy.hitungRating(gameState.uang, gameState.journalTerbuka.size, config)
                 launchImmediately {
-                    sceneContainer.changeTo { EndScene() }
+                    sceneContainer.changeTo { EndScene(gameState.uang, gameState.journalTerbuka.size, rating) }
                 }
             } else {
-                val formatHariTemplate = catalog.texts.hud["hari"] ?: "Hari {hari}/{total}"
-                val infoHari = formatHariTemplate
-                    .replace("{hari}", gameState.hari.toString())
-                    .replace("{total}", config.jumlahHariMusim.toString())
+                // Simpan otomatis di langkah 9 pergantian hari
+                simpanGame()
 
-                if (gameState.pendapatanKemarin > 0) {
-                    toastView.show("$infoHari (Hasil bin: +Rp ${gameState.pendapatanKemarin})")
-                } else {
-                    toastView.show(infoHari)
+                // Buka summary panel
+                val summary = gameState.summaryKemarin
+                if (summary != null) {
+                    summaryPanel.open(summary)
                 }
+
+                tutorialHint.onEvent("hari_berganti", gameState)
             }
         }
+        gantiHariFn = { gantiHari() }
 
         fun gunakanAlat() {
             val target = playerController.getTargetTile()
@@ -206,8 +236,17 @@ class GameScene : Scene() {
                     toastView.show(template.replace("{kesehatan}", hasil.kesehatan.toString()))
                 }
                 is InteractionResult.Sukses -> {
-                    if (hasil.sfx == "sfx_cangkul") Sfx.playCangkul()
-                    if (hasil.sfx == "sfx_siram") Sfx.playSiram()
+                    if (hasil.sfx == "sfx_cangkul") {
+                        Sfx.playCangkul()
+                        tutorialHint.onEvent("petak_diolah", gameState)
+                    }
+                    if (hasil.sfx == "sfx_siram") {
+                        Sfx.playSiram()
+                        tutorialHint.onEvent("tanaman_disiram", gameState)
+                    }
+                    if (slot == 6) {
+                        tutorialHint.onEvent("tanaman_ditanam", gameState)
+                    }
                     if (hasil.toastKey != null) {
                         val pesan = catalog.texts.toast[hasil.toastKey] ?: hasil.toastKey
                         toastView.show(pesan)
@@ -234,6 +273,7 @@ class GameScene : Scene() {
                 when (objekId) {
                     "pintu_toko" -> {
                         shopPanel.open(gameState)
+                        tutorialHint.onEvent("toko_dibuka", gameState)
                     }
                     "shipping_bin" -> {
                         val dipindah = Interaction.masukkanKeBin(gameState.inventory, gameState.bin)
@@ -248,8 +288,7 @@ class GameScene : Scene() {
                         }
                     }
                     "pintu_rumah" -> {
-                        val msg = catalog.texts.tidur["konfirmasi"] ?: "Tidur dan ganti hari?"
-                        toastView.show(msg)
+                        confirmSleepPanel.open()
                     }
                     else -> toastView.show(objekId)
                 }
@@ -289,11 +328,28 @@ class GameScene : Scene() {
             }
         }
 
-        // 11. Event tombol sekali tekan
+        // 12. Event tombol sekali tekan
         keys.down { key ->
+            // Panel ConfirmSleepPanel
+            if (confirmSleepPanel.isOpen) {
+                confirmSleepPanel.handleKeyDown(key.key)
+                return@down
+            }
+
+            // Panel SummaryPanel
+            if (summaryPanel.isOpen) {
+                summaryPanel.handleKeyDown(key.key)
+                return@down
+            }
+
             // Panel ShopPanel
             if (shopPanel.isOpen) {
+                val oldBijiTotal = gameState.inventory.biji.values.sum()
                 shopPanel.handleKeyDown(key.key)
+                val newBijiTotal = gameState.inventory.biji.values.sum()
+                if (newBijiTotal > oldBijiTotal) {
+                    tutorialHint.onEvent("biji_dibeli", gameState)
+                }
                 hudView.update(gameState)
                 hotbarView.update(gameState, selectedCropId)
                 return@down
@@ -326,6 +382,10 @@ class GameScene : Scene() {
                 Key.J -> {
                     journalPanel.open(gameState)
                 }
+                Key.M -> {
+                    val muted = Sfx.toggleMute()
+                    toastView.show(if (muted) "Suara dimatikan (Mute)" else "Suara diaktifkan")
+                }
                 Key.SPACE -> gunakanAlat()
                 Key.E -> interaksiTanganAtauObjek()
                 Key.F1 -> {
@@ -349,7 +409,6 @@ class GameScene : Scene() {
                 }
                 Key.F3 -> {
                     if (config.debugAktif) {
-                        // Paksa hama muncul di semua tanaman tahap >= 1 (SPEC bagian 12)
                         var munculCount = 0
                         for (petak in gameState.petak) {
                             val t = petak.tanaman
@@ -371,7 +430,6 @@ class GameScene : Scene() {
                 }
                 Key.F4 -> {
                     if (config.debugAktif) {
-                        // Matangkan semua tanaman (SPEC bagian 12)
                         var matangCount = 0
                         for (petak in gameState.petak) {
                             val t = petak.tanaman
@@ -393,18 +451,20 @@ class GameScene : Scene() {
 
         // Mouse scroll untuk mengganti slot hotbar
         onScroll { event ->
-            if (!shopPanel.isOpen && !inspectPanel.isOpen && !journalPanel.isOpen) {
+            val anyPanelOpen = confirmSleepPanel.isOpen || summaryPanel.isOpen || shopPanel.isOpen || inspectPanel.isOpen || journalPanel.isOpen
+            if (!anyPanelOpen) {
                 if (event.scrollDeltaYLines > 0) hotbarView.cycleSlot(1)
                 else if (event.scrollDeltaYLines < 0) hotbarView.cycleSlot(-1)
             }
         }
 
-        // 12. Game Loop updater
+        // 13. Game Loop updater
         addFastUpdater { fastDuration ->
             val dt = fastDuration.seconds
 
             // Jika ada panel terbuka, waktu berhenti dan pemain tidak bergerak
-            if (shopPanel.isOpen || inspectPanel.isOpen || journalPanel.isOpen) {
+            val anyPanelOpen = confirmSleepPanel.isOpen || summaryPanel.isOpen || shopPanel.isOpen || inspectPanel.isOpen || journalPanel.isOpen
+            if (anyPanelOpen) {
                 toastView.update(dt)
                 return@addFastUpdater
             }
@@ -418,6 +478,10 @@ class GameScene : Scene() {
             if (k[Key.A] || k[Key.LEFT]) inputX -= 1.0
             if (k[Key.D] || k[Key.RIGHT]) inputX += 1.0
 
+            if (inputX != 0.0 || inputY != 0.0) {
+                tutorialHint.onEvent("pemain_bergerak", gameState)
+            }
+
             // Perbarui pemain
             playerController.update(inputX, inputY, dt)
             playerView.update(playerController, dt)
@@ -425,6 +489,36 @@ class GameScene : Scene() {
             // Perbarui penanda petak
             val target = playerController.getTargetTile()
             penandaView.update(target)
+
+            // Periksa petunjuk kejadian hama_pertama
+            if (!gameState.hamaPertamaMuncul) {
+                val adaHama = gameState.petak.any { it.tanaman?.hamaId != null && it.tanaman?.mati == false }
+                if (adaHama) {
+                    gameState.hamaPertamaMuncul = true
+                    val msg = catalog.texts.petunjukKejadian["hama_pertama"]
+                    if (msg != null) {
+                        tutorialHint.showKejadian(msg)
+                    }
+                }
+            }
+
+            // Periksa petunjuk kejadian matang_pertama
+            if (!gameState.matangPertamaMuncul) {
+                val adaMatang = gameState.petak.any { p ->
+                    val t = p.tanaman
+                    if (t != null && !t.mati) {
+                        val crop = catalog.cropById[t.cropId]
+                        crop != null && t.hariTumbuh >= crop.hariTumbuh
+                    } else false
+                }
+                if (adaMatang) {
+                    gameState.matangPertamaMuncul = true
+                    val msg = catalog.texts.petunjukKejadian["matang_pertama"]
+                    if (msg != null) {
+                        tutorialHint.showKejadian(msg)
+                    }
+                }
+            }
 
             // Perbarui jam & waktu harian
             val tidurOtomatis = DaySimulator.tickWaktu(gameState, config, dt, akumulatorMenit)
@@ -435,6 +529,7 @@ class GameScene : Scene() {
             // Perbarui visual
             hudView.update(gameState)
             hotbarView.update(gameState, selectedCropId)
+            tutorialHint.update(dt, gameState)
             toastView.update(dt)
         }
     }

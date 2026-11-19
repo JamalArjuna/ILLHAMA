@@ -73,6 +73,23 @@ data class PeriksaTexts(
     val petunjuk: String = "Pilih cara pengendalian yang tepat. Detailnya ada di Journal (tekan J)."
 )
 
+@Serializable
+data class TutorialStep(
+    val id: String,
+    val teks: String,
+    val selesaiKetika: String
+)
+
+@Serializable
+data class AkhirTexts(
+    val judul: String = "Musim Selesai",
+    val uang: String = "Uang akhir: Rp {uang}",
+    val journal: String = "Journal terbuka: {terbuka}/{total}",
+    val rating: String = "Rating: {bintang} bintang",
+    val pesan: Map<String, String> = emptyMap(),
+    val ulang: String = "Enter: main lagi   Esc: menu utama"
+)
+
 // DTO texts_id.json
 @Serializable
 data class TextsData(
@@ -85,7 +102,12 @@ data class TextsData(
     val toko: Map<String, String> = emptyMap(),
     val bin: Map<String, String> = emptyMap(),
     val periksa: PeriksaTexts = PeriksaTexts(),
-    val journal: JournalTexts = JournalTexts()
+    val journal: JournalTexts = JournalTexts(),
+    val ringkasan: Map<String, String> = emptyMap(),
+    val akhir: AkhirTexts = AkhirTexts(),
+    val tutorial: List<TutorialStep> = emptyList(),
+    val petunjukKejadian: Map<String, String> = emptyMap(),
+    val kredit: Map<String, String> = emptyMap()
 )
 
 /**
